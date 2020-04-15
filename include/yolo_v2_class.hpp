@@ -113,18 +113,25 @@ public:
         // example
         // based on the crop
         // Setup a rectangle to define your region of interest
-        // cv::Rect myROI(0, 0, 384, 384);
-        // det_mat = mat(myROI); // CROPS
+        cv::Mat small_mat1;
+        cv::Rect myROI(1800, 50, 384, 384);
+        small_mat1 = mat_img_5MP(myROI); // CROPS
 
         // Convert to image_t
-        std::shared_ptr<image_t> image_5MP = mat_to_image(mat_img_5MP);
-        auto detection_boxes = detect(*image_5MP, thresh, use_mean);
+        //std::shared_ptr<image_t> image_5MP = mat_to_image(mat_img_5MP);
+        //auto detection_boxes = detect(*image_5MP, thresh, use_mean);
+        std::shared_ptr<image_t> image_small1 = mat_to_image(small_mat1);
+        auto detection_boxes1 = detect(*image_small1, thresh, use_mean);
 
         // Then will need to rebuild the detections_boxes from all the tiles here
 
-        //float wk = (float)init_w / img.w, hk = (float)init_h / img.h;
-        //for (auto &i : detection_boxes) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
-        return detection_boxes;
+        // Translate detection to real 
+        for (auto &i : detection_boxes1) i.x += 1800, i.y += 50;
+        // rescale to initial width / height of image
+        float wk = (float)init_w / mat_img_5MP.size().width, hk = (float)init_h / mat_img_5MP.size().height;
+        for (auto &i : detection_boxes1) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
+
+        return detection_boxes1;
     }
 
 #ifdef OPENCV
