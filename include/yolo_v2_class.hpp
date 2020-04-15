@@ -109,10 +109,19 @@ public:
         cv::Mat mat_img_5MP;
         cv::resize(mat_img, mat_img_5MP, defined_input_size);
 
+        // Here create an array of cv::Mat of size 384x384
+        // example
+        // based on the crop
+        // Setup a rectangle to define your region of interest
+        // cv::Rect myROI(0, 0, 384, 384);
+        // det_mat = mat(myROI); // CROPS
+
         // Convert to image_t
         std::shared_ptr<image_t> image_5MP = mat_to_image(mat_img_5MP);
-
         auto detection_boxes = detect(*image_5MP, thresh, use_mean);
+
+        // Then will need to rebuild the detections_boxes from all the tiles here
+
         //float wk = (float)init_w / img.w, hk = (float)init_h / img.h;
         //for (auto &i : detection_boxes) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
         return detection_boxes;
