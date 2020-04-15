@@ -478,7 +478,7 @@ int main(int argc, char *argv[])
                         std::vector<bbox_t> result_vec;
                         // TODO HERE
                         if(det_image)
-                            result_vec = detector.detect_resized(*det_image, frame_size.width, frame_size.height, thresh, true);  // true
+                            result_vec = detector.detect_resized(detection_data.cap_frame, frame_size.width, frame_size.height, thresh, true);  // true
                         fps_det_counter++;
                         //std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
@@ -668,10 +668,9 @@ int main(int argc, char *argv[])
             else {    // image file
                 // to achive high performance for multiple images do these 2 lines in another thread
                 cv::Mat mat_img = cv::imread(filename);
-                auto det_image = detector.mat_to_image_resize(mat_img);
-
+                //auto det_image = detector.mat_to_image_resize(mat_img);
                 auto start = std::chrono::steady_clock::now();
-                std::vector<bbox_t> result_vec = detector.detect_resized(*det_image, mat_img.size().width, mat_img.size().height);
+                std::vector<bbox_t> result_vec = detector.detect_resized(mat_img, mat_img.size().width, mat_img.size().height);
                 auto end = std::chrono::steady_clock::now();
                 std::chrono::duration<double> spent = end - start;
                 std::cout << " Time: " << spent.count() << " sec \n";

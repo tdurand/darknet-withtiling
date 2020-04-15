@@ -17,6 +17,8 @@
 #endif
 #endif
 
+#include <opencv2/opencv.hpp>
+
 #define C_SHARP_MAX_OBJECTS 1000
 
 struct bbox_t {
@@ -95,15 +97,22 @@ public:
     //LIB_API bool send_json_http(std::vector<bbox_t> cur_bbox_vec, std::vector<std::string> obj_names, int frame_id,
     //    std::string filename = std::string(), int timeout = 400000, int port = 8070);
 
-    std::vector<bbox_t> detect_resized(image_t img, int init_w, int init_h, float thresh = 0.2, bool use_mean = false)
+    std::vector<bbox_t> detect_resized(cv::Mat mat_img, int init_w, int init_h, float thresh = 0.2, bool use_mean = false)
     {
-        if (img.data == NULL)
-            throw std::runtime_error("Image is empty");
-        // HERE we have a big image_t of 2304x1536 and we should split it in 24 smaller image to call detect on them
-        // TODO
-        std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << img.w << " img.h " << img.h << "\n";
+        // HERE we have a big cv::Mat of the large and we should 
+        // => Resize mat to 2304x1536 
+        // => Split it in 24 smaller image: image_t to call detect on them
+        std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << mat_img.size().width << " img.h " << mat_img.size().height << "\n";
 
-        auto detection_boxes = detect(img, thresh, use_mean);
+        // Resize to 2304x1536 (5 megapixels)
+        cv::Size defined_input_size = cv::Size(2304, 1536);
+        cv::Mat mat_img_5MP;
+        cv::resize(mat_img, mat_img_5MP, defined_input_size);
+
+        // Convert to image_t
+        std::shared_ptr<image_t> image_5MP = mat_to_image(mat_img_5MP);
+
+        auto detection_boxes = detect(*image_5MP, thresh, use_mean);
         //float wk = (float)init_w / img.w, hk = (float)init_h / img.h;
         //for (auto &i : detection_boxes) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
         return detection_boxes;
@@ -114,8 +123,8 @@ public:
     {
         if(mat.data == NULL)
             throw std::runtime_error("Image is empty");
-        auto image_ptr = mat_to_image_resize(mat);
-        return detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
+        //auto image_ptr = mat_to_image_resize(mat);
+        return detect_resized(mat, mat.cols, mat.rows, thresh, use_mean);
     }
 
     std::shared_ptr<image_t> mat_to_image_resize(cv::Mat mat) const
