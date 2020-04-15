@@ -117,11 +117,29 @@ public:
         cv::Rect myROI(1800, 50, 384, 384);
         small_mat1 = mat_img_5MP(myROI); // CROPS
 
+
+        // Work in progress, LOOP and populate detection boxes arry
+        cv::Mat temp_small_mat;
+        std::shared_ptr<image_t> temp_image_t;
+        cv::Rect temp_crop_rect;
+        // TODO here
+        std::vector<std::vector<bbox_t>> array_detection_boxes;
+
+        for (int i = 0; i < 24; i++) {
+           // crop corresponding part of images
+           temp_small_mat = mat_img_5MP(myROI);
+           // convert to std::shared_ptr<image_t> and call detect on it
+           temp_image_t = mat_to_image(temp_small_mat);
+           // populate array of detections boxes
+           array_detection_boxes.push_back(detect(*temp_image_t, thresh, use_mean));
+        }
+
         // Convert to image_t
         //std::shared_ptr<image_t> image_5MP = mat_to_image(mat_img_5MP);
         //auto detection_boxes = detect(*image_5MP, thresh, use_mean);
-        std::shared_ptr<image_t> image_small1 = mat_to_image(small_mat1);
-        auto detection_boxes1 = detect(*image_small1, thresh, use_mean);
+        auto detection_boxes1 = array_detection_boxes[0];
+        
+        // TODO do a loop
 
         // Then will need to rebuild the detections_boxes from all the tiles here
 
