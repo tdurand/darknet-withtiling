@@ -476,7 +476,7 @@ int main(int argc, char *argv[])
                         detection_data = prepare2detect.receive();
                         det_image = detection_data.det_image;
                         std::vector<bbox_t> result_vec;
-
+                        // TODO HERE
                         if(det_image)
                             result_vec = detector.detect_resized(*det_image, frame_size.width, frame_size.height, thresh, true);  // true
                         fps_det_counter++;

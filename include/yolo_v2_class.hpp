@@ -99,9 +99,13 @@ public:
     {
         if (img.data == NULL)
             throw std::runtime_error("Image is empty");
+        // HERE we have a big image_t of 2304x1536 and we should split it in 24 smaller image to call detect on them
+        // TODO
+        std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << img.w << " img.h " << img.h << "\n";
+
         auto detection_boxes = detect(img, thresh, use_mean);
-        float wk = (float)init_w / img.w, hk = (float)init_h / img.h;
-        for (auto &i : detection_boxes) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
+        //float wk = (float)init_w / img.w, hk = (float)init_h / img.h;
+        //for (auto &i : detection_boxes) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
         return detection_boxes;
     }
 
@@ -118,10 +122,15 @@ public:
     {
         if (mat.data == NULL) return std::shared_ptr<image_t>(NULL);
 
-        cv::Size network_size = cv::Size(get_net_width(), get_net_height());
+        cv::Size defined_input_size = cv::Size(2304, 1536);
         cv::Mat det_mat;
-        if (mat.size() != network_size)
-            cv::resize(mat, det_mat, network_size);
+        // Setup a rectangle to define your region of interest
+        // cv::Rect myROI(0, 0, get_net_width(), get_net_height());
+        if (mat.size() != defined_input_size) {
+            std::cout << "Resize mat to 2304x1536 \n";
+            //det_mat = mat(myROI);
+            cv::resize(mat, det_mat, defined_input_size);
+        }      
         else
             det_mat = mat;  // only reference is copied
 
