@@ -102,54 +102,61 @@ public:
         // HERE we have a big cv::Mat of the large and we should 
         // => Resize mat to 2304x1536 
         // => Split it in 24 smaller image: image_t to call detect on them
-        std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << mat_img.size().width << " img.h " << mat_img.size().height << "\n";
+        // std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << mat_img.size().width << " img.h " << mat_img.size().height << "\n";
 
         // Resize to 2304x1536 (5 megapixels)
         cv::Size defined_input_size = cv::Size(2304, 1536);
         cv::Mat mat_img_5MP;
         cv::resize(mat_img, mat_img_5MP, defined_input_size);
 
-        // Here create an array of cv::Mat of size 384x384
-        // example
-        // based on the crop
-        // Setup a rectangle to define your region of interest
-        cv::Mat small_mat1;
-        cv::Rect myROI(1800, 50, 384, 384);
-        small_mat1 = mat_img_5MP(myROI); // CROPS
+        // std::cout << "detect_resized 5MP img.w: " << mat_img_5MP.size().width << " img.h " << mat_img_5MP.size().height << "\n";
 
-
-        // Work in progress, LOOP and populate detection boxes arry
+        // LOOP and populate detection boxes array
         cv::Mat temp_small_mat;
         std::shared_ptr<image_t> temp_image_t;
         cv::Rect temp_crop_rect;
-        // TODO here
         std::vector<std::vector<bbox_t>> array_detection_boxes;
 
-        for (int i = 0; i < 24; i++) {
-           // crop corresponding part of images
-           temp_small_mat = mat_img_5MP(myROI);
-           // convert to std::shared_ptr<image_t> and call detect on it
-           temp_image_t = mat_to_image(temp_small_mat);
-           // populate array of detections boxes
-           array_detection_boxes.push_back(detect(*temp_image_t, thresh, use_mean));
+        for (int i = 0; i < 6; i++) {
+           for (int j = 0; j < 4; j++) {
+                // std::cout << "crop: (" << i * 384 << "," << j * 384 << ",384,384)\n";
+                cv::Rect cropRect(i * 384, j * 384, 384, 384);
+                // crop corresponding part of images
+                temp_small_mat = mat_img_5MP(cropRect);
+                // convert to std::shared_ptr<image_t> and call detect on it
+                temp_image_t = mat_to_image(temp_small_mat);
+                // populate array of detections boxes
+                array_detection_boxes.push_back(detect(*temp_image_t, thresh, use_mean));
+           }
         }
 
-        // Convert to image_t
-        //std::shared_ptr<image_t> image_5MP = mat_to_image(mat_img_5MP);
-        //auto detection_boxes = detect(*image_5MP, thresh, use_mean);
-        auto detection_boxes1 = array_detection_boxes[0];
+        // compute rescale factor to initial width / height of image
+        float rescaleFactorW = (float)init_w / mat_img_5MP.size().width;
+        float rescaleFactorH = (float)init_h / mat_img_5MP.size().height;
         
-        // TODO do a loop
+        // Populate list of all bbox (merge all individuals cell)
+        std::vector<bbox_t> all_detection_boxes;
 
-        // Then will need to rebuild the detections_boxes from all the tiles here
+        for(std::vector<int>::size_type i = 0; i != array_detection_boxes.size(); i++) {
+            for (auto &bbox : array_detection_boxes[i]) {
+                int columnIndex = (i - (i % 4)) / 4;
+                int rowIndex = i % 4;
 
-        // Translate detection to real 
-        for (auto &i : detection_boxes1) i.x += 1800, i.y += 50;
-        // rescale to initial width / height of image
-        float wk = (float)init_w / mat_img_5MP.size().width, hk = (float)init_h / mat_img_5MP.size().height;
-        for (auto &i : detection_boxes1) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
+                // std::cout << "bbox index: " << i << " columnIndex: " << columnIndex << " rowIndex " << rowIndex << "\n";
+                // Translate
+                bbox.x = bbox.x + 384 * columnIndex;
+                bbox.y = bbox.y + 384 * rowIndex;
+                // Rescale
+                bbox.x *= rescaleFactorW;
+                bbox.w *= rescaleFactorW;
+                bbox.y *= rescaleFactorH;
+                bbox.h *= rescaleFactorH;
+                // Push to final array
+                all_detection_boxes.push_back(bbox);
+            }
+        }
 
-        return detection_boxes1;
+        return all_detection_boxes;
     }
 
 #ifdef OPENCV
