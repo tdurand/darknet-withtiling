@@ -184,7 +184,7 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
 
     for (auto &i : result_vec) {
         cv::Scalar color = obj_id_to_color(i.obj_id);
-        cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
+        cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 1);
         if (obj_names.size() > i.obj_id) {
             std::string obj_name = obj_names[i.obj_id];
             if (i.track_id > 0) obj_name += " - " + std::to_string(i.track_id);
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
     }
     else if (argc > 1) filename = argv[1];
 
-    float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.4;
+    float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.3;
 
     Detector detector(cfg_file, weights_file);
 
@@ -678,6 +678,7 @@ int main(int argc, char *argv[])
                 //result_vec = detector.tracking_id(result_vec);    // comment it - if track_id is not required
                 draw_boxes(mat_img, result_vec, obj_names);
                 cv::imshow("window name", mat_img);
+                cv::imwrite("sample/result.jpg", mat_img);
                 show_console_result(result_vec, obj_names);
                 cv::waitKey(0);
             }
