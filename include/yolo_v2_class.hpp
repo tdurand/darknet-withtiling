@@ -102,25 +102,29 @@ public:
         // HERE we have a big cv::Mat of the large and we should 
         // => Resize mat to 2304x1536 
         // => Split it in 24 smaller image: image_t to call detect on them
-        // std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << mat_img.size().width << " img.h " << mat_img.size().height << "\n";
+        //std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << mat_img.size().width << " img.h " << mat_img.size().height << "\n";
 
         // Resize to 2304x1536 (5 megapixels)
-        cv::Size defined_input_size = cv::Size(2304, 1536);
+        cv::Size defined_input_size = cv::Size(3264, 2464);
         cv::Mat mat_img_5MP;
         cv::resize(mat_img, mat_img_5MP, defined_input_size);
 
-        // std::cout << "detect_resized 5MP img.w: " << mat_img_5MP.size().width << " img.h " << mat_img_5MP.size().height << "\n";
+        //std::cout << "detect_resized 5MP img.w: " << mat_img_5MP.size().width << " img.h " << mat_img_5MP.size().height << "\n";
 
         // LOOP and populate detection boxes array
         cv::Mat temp_small_mat;
         std::shared_ptr<image_t> temp_image_t;
-        cv::Rect temp_crop_rect;
         std::vector<std::vector<bbox_t>> array_detection_boxes;
 
         for (int i = 0; i < 6; i++) {
            for (int j = 0; j < 4; j++) {
-                // std::cout << "crop: (" << i * 384 << "," << j * 384 << ",384,384)\n";
-                cv::Rect cropRect(i * 384, j * 384, 384, 384);
+                cv::Rect cropRect(i * 544, j * 544, 544, 544);
+                if(j == 3) {
+                    cropRect = cv::Rect(i * 544, j * 544, 544, 288);
+                    //std::cout << "crop: (" << i * 544 << "," << j * 544 << ",544,288)\n";
+                } else {
+                    //std::cout << "crop: (" << i * 544 << "," << j * 544 << ",544,544)\n";
+                }
                 // crop corresponding part of images
                 temp_small_mat = mat_img_5MP(cropRect);
                 // convert to std::shared_ptr<image_t> and call detect on it
@@ -144,8 +148,8 @@ public:
 
                 // std::cout << "bbox index: " << i << " columnIndex: " << columnIndex << " rowIndex " << rowIndex << "\n";
                 // Translate
-                bbox.x = bbox.x + 384 * columnIndex;
-                bbox.y = bbox.y + 384 * rowIndex;
+                bbox.x = bbox.x + 544 * columnIndex;
+                bbox.y = bbox.y + 544 * rowIndex;
                 // Rescale
                 bbox.x *= rescaleFactorW;
                 bbox.w *= rescaleFactorW;
