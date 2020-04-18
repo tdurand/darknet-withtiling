@@ -315,10 +315,12 @@ int main(int argc, char *argv[])
 
             std::string const file_ext = filename.substr(filename.find_last_of(".") + 1);
             std::string const protocol = filename.substr(0, 7);
-            if (true)   // ZED stereo camera
+            if (file_ext == "avi" || file_ext == "mp4" || file_ext == "mjpg" || file_ext == "mov" ||     // video file
+                protocol == "rtmp://" || protocol == "rtsp://" || protocol == "http://" || protocol == "https:/" ||    // video network stream
+                filename == "zed_camera" || file_ext == "svo" || filename == "web_camera")   // ZED stereo camera
 
             {
-                if (true)
+                if (protocol == "rtsp://" || protocol == "http://" || protocol == "https:/" || filename == "zed_camera" || filename == "web_camera")
                     detection_sync = false;
 
                 cv::Mat cur_frame;
