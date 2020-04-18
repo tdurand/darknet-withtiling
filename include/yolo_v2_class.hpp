@@ -176,12 +176,12 @@ public:
     {
         if (mat.data == NULL) return std::shared_ptr<image_t>(NULL);
 
-        cv::Size defined_input_size = cv::Size(2304, 1536);
+        cv::Size defined_input_size = cv::Size(3264, 2464);
         cv::Mat det_mat;
         // Setup a rectangle to define your region of interest
         // cv::Rect myROI(0, 0, get_net_width(), get_net_height());
         if (mat.size() != defined_input_size) {
-            std::cout << "Resize mat to 2304x1536 \n";
+            std::cout << "Resize mat to 3264x2464 \n";
             //det_mat = mat(myROI);
             cv::resize(mat, det_mat, defined_input_size);
         }      
