@@ -558,14 +558,18 @@ int main(int argc, char *argv[])
 
                         //small_preview.set(draw_frame, result_vec);
                         //large_preview.set(draw_frame, result_vec);
-                        draw_boxes(draw_frame, result_vec, obj_names, current_fps_det, current_fps_cap);
-                        //show_console_result(result_vec, obj_names, detection_data.frame_id);
+                        //draw_boxes(draw_frame, result_vec, obj_names, current_fps_det, current_fps_cap);
+                        // Uncomment to show results in console
+                        show_console_result(result_vec, obj_names, detection_data.frame_id);
                         //large_preview.draw(draw_frame);
                         //small_preview.draw(draw_frame, true);
+                        int timeout = 400000;
+                        int jpeg_quality = 40;    // 1 - 100
+                        //send_mjpeg((mat_cv*)&cap_frame, 8090, timeout, jpeg_quality);
 
                         detection_data.result_vec = result_vec;
                         detection_data.draw_frame = draw_frame;
-                        draw2show.send(detection_data);
+                        //draw2show.send(detection_data);
                         if (send_network) draw2net.send(detection_data);
                         if (output_video.isOpened()) draw2write.send(detection_data);
                     } while (!detection_data.exit_flag);
