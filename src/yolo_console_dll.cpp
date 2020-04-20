@@ -564,7 +564,7 @@ int main(int argc, char *argv[])
                         //large_preview.draw(draw_frame);
                         //small_preview.draw(draw_frame, true);
                         int timeout = 400000;
-                        int jpeg_quality = 40;    // 1 - 100
+                        int jpeg_quality = 80;    // 1 - 100
                         send_mjpeg((mat_cv*)&cap_frame, 8090, timeout, jpeg_quality);
 
                         detection_data.result_vec = result_vec;
