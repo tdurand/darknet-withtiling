@@ -105,7 +105,9 @@ public:
         //std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << mat_img.size().width << " img.h " << mat_img.size().height << "\n";
 
         // Resize to 2304x1536 (5 megapixels)
-        cv::Size defined_input_size = cv::Size(3264, 2464);
+        cv::Size defined_input_size = cv::Size(2304, 1536);
+        int cell_size = 384;
+        int cell_size_small = 384; // 288 in case of big 8MP image
         cv::Mat mat_img_5MP;
         cv::resize(mat_img, mat_img_5MP, defined_input_size);
 
@@ -118,9 +120,9 @@ public:
 
         for (int i = 0; i < 6; i++) {
            for (int j = 0; j < 4; j++) {
-                cv::Rect cropRect(i * 544, j * 544, 544, 544);
+                cv::Rect cropRect(i * cell_size, j * cell_size, cell_size, cell_size);
                 if(j == 3) {
-                    cropRect = cv::Rect(i * 544, j * 544, 544, 288);
+                    cropRect = cv::Rect(i * cell_size, j * cell_size, cell_size, cell_size_small);
                     //std::cout << "crop: (" << i * 544 << "," << j * 544 << ",544,288)\n";
                 } else {
                     //std::cout << "crop: (" << i * 544 << "," << j * 544 << ",544,544)\n";
@@ -148,8 +150,8 @@ public:
 
                 // std::cout << "bbox index: " << i << " columnIndex: " << columnIndex << " rowIndex " << rowIndex << "\n";
                 // Translate
-                bbox.x = bbox.x + 544 * columnIndex;
-                bbox.y = bbox.y + 544 * rowIndex;
+                bbox.x = bbox.x + cell_size * columnIndex;
+                bbox.y = bbox.y + cell_size * rowIndex;
                 // Rescale
                 bbox.x *= rescaleFactorW;
                 bbox.w *= rescaleFactorW;
