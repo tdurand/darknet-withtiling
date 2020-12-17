@@ -184,7 +184,7 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
 
     for (auto &i : result_vec) {
         cv::Scalar color = obj_id_to_color(i.obj_id);
-        cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
+        cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 1);
         if (obj_names.size() > i.obj_id) {
             std::string obj_name = obj_names[i.obj_id];
             if (i.track_id > 0) obj_name += " - " + std::to_string(i.track_id);
@@ -202,11 +202,11 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
                 if (max_width_3d > max_width) max_width = max_width_3d;
             }
 
-            cv::rectangle(mat_img, cv::Point2f(std::max((int)i.x - 1, 0), std::max((int)i.y - 35, 0)),
-                cv::Point2f(std::min((int)i.x + max_width, mat_img.cols - 1), std::min((int)i.y, mat_img.rows - 1)),
-                color, CV_FILLED, 8, 0);
-            putText(mat_img, obj_name, cv::Point2f(i.x, i.y - 16), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(0, 0, 0), 2);
-            if(!coords_3d.empty()) putText(mat_img, coords_3d, cv::Point2f(i.x, i.y-1), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(0, 0, 0), 1);
+            // cv::rectangle(mat_img, cv::Point2f(std::max((int)i.x - 1, 0), std::max((int)i.y - 35, 0)),
+            //     cv::Point2f(std::min((int)i.x + max_width, mat_img.cols - 1), std::min((int)i.y, mat_img.rows - 1)),
+            //     color, CV_FILLED, 8, 0);
+            //putText(mat_img, obj_name, cv::Point2f(i.x, i.y - 16), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(0, 0, 0), 2);
+            //if(!coords_3d.empty()) putText(mat_img, coords_3d, cv::Point2f(i.x, i.y-1), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(0, 0, 0), 1);
         }
     }
     if (current_det_fps >= 0 && current_cap_fps >= 0) {
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
     }
     else if (argc > 1) filename = argv[1];
 
-    float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.2;
+    float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.3;
 
     Detector detector(cfg_file, weights_file);
 
@@ -476,9 +476,9 @@ int main(int argc, char *argv[])
                         detection_data = prepare2detect.receive();
                         det_image = detection_data.det_image;
                         std::vector<bbox_t> result_vec;
-
+                        // TODO HERE
                         if(det_image)
-                            result_vec = detector.detect_resized(*det_image, frame_size.width, frame_size.height, thresh, true);  // true
+                            result_vec = detector.detect_resized(detection_data.cap_frame, frame_size.width, frame_size.height, thresh, true);  // true
                         fps_det_counter++;
                         //std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
@@ -558,14 +558,18 @@ int main(int argc, char *argv[])
 
                         //small_preview.set(draw_frame, result_vec);
                         //large_preview.set(draw_frame, result_vec);
-                        draw_boxes(draw_frame, result_vec, obj_names, current_fps_det, current_fps_cap);
-                        //show_console_result(result_vec, obj_names, detection_data.frame_id);
+                        //draw_boxes(draw_frame, result_vec, obj_names, current_fps_det, current_fps_cap);
+                        // Uncomment to show results in console
+                        show_console_result(result_vec, obj_names, detection_data.frame_id);
                         //large_preview.draw(draw_frame);
                         //small_preview.draw(draw_frame, true);
+                        int timeout = 400000;
+                        int jpeg_quality = 40;    // 1 - 100
+                        //send_mjpeg((mat_cv*)&cap_frame, 8090, timeout, jpeg_quality);
 
                         detection_data.result_vec = result_vec;
                         detection_data.draw_frame = draw_frame;
-                        draw2show.send(detection_data);
+                        //draw2show.send(detection_data);
                         if (send_network) draw2net.send(detection_data);
                         if (output_video.isOpened()) draw2write.send(detection_data);
                     } while (!detection_data.exit_flag);
@@ -668,10 +672,9 @@ int main(int argc, char *argv[])
             else {    // image file
                 // to achive high performance for multiple images do these 2 lines in another thread
                 cv::Mat mat_img = cv::imread(filename);
-                auto det_image = detector.mat_to_image_resize(mat_img);
-
+                //auto det_image = detector.mat_to_image_resize(mat_img);
                 auto start = std::chrono::steady_clock::now();
-                std::vector<bbox_t> result_vec = detector.detect_resized(*det_image, mat_img.size().width, mat_img.size().height);
+                std::vector<bbox_t> result_vec = detector.detect_resized(mat_img, mat_img.size().width, mat_img.size().height, thresh);
                 auto end = std::chrono::steady_clock::now();
                 std::chrono::duration<double> spent = end - start;
                 std::cout << " Time: " << spent.count() << " sec \n";
@@ -679,6 +682,7 @@ int main(int argc, char *argv[])
                 //result_vec = detector.tracking_id(result_vec);    // comment it - if track_id is not required
                 draw_boxes(mat_img, result_vec, obj_names);
                 cv::imshow("window name", mat_img);
+                cv::imwrite("sample/result.jpg", mat_img);
                 show_console_result(result_vec, obj_names);
                 cv::waitKey(0);
             }

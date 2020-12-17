@@ -17,6 +17,8 @@
 #endif
 #endif
 
+#include <opencv2/opencv.hpp>
+
 #define C_SHARP_MAX_OBJECTS 1000
 
 struct bbox_t {
@@ -95,14 +97,70 @@ public:
     //LIB_API bool send_json_http(std::vector<bbox_t> cur_bbox_vec, std::vector<std::string> obj_names, int frame_id,
     //    std::string filename = std::string(), int timeout = 400000, int port = 8070);
 
-    std::vector<bbox_t> detect_resized(image_t img, int init_w, int init_h, float thresh = 0.2, bool use_mean = false)
+    std::vector<bbox_t> detect_resized(cv::Mat mat_img, int init_w, int init_h, float thresh = 0.2, bool use_mean = false)
     {
-        if (img.data == NULL)
-            throw std::runtime_error("Image is empty");
-        auto detection_boxes = detect(img, thresh, use_mean);
-        float wk = (float)init_w / img.w, hk = (float)init_h / img.h;
-        for (auto &i : detection_boxes) i.x *= wk, i.w *= wk, i.y *= hk, i.h *= hk;
-        return detection_boxes;
+        // HERE we have a big cv::Mat of the large and we should 
+        // => Resize mat to 2304x1536 
+        // => Split it in 24 smaller image: image_t to call detect on them
+        //std::cout << "detect_resized init_w:" << init_w << " init_h: " << init_h << " img.w: " << mat_img.size().width << " img.h " << mat_img.size().height << "\n";
+
+        // Resize to 2304x1536 (5 megapixels)
+        cv::Size defined_input_size = cv::Size(3264, 2464);
+        cv::Mat mat_img_5MP;
+        cv::resize(mat_img, mat_img_5MP, defined_input_size);
+
+        //std::cout << "detect_resized 5MP img.w: " << mat_img_5MP.size().width << " img.h " << mat_img_5MP.size().height << "\n";
+
+        // LOOP and populate detection boxes array
+        cv::Mat temp_small_mat;
+        std::shared_ptr<image_t> temp_image_t;
+        std::vector<std::vector<bbox_t>> array_detection_boxes;
+
+        for (int i = 0; i < 6; i++) {
+           for (int j = 0; j < 4; j++) {
+                cv::Rect cropRect(i * 544, j * 544, 544, 544);
+                if(j == 3) {
+                    cropRect = cv::Rect(i * 544, j * 544, 544, 288);
+                    //std::cout << "crop: (" << i * 544 << "," << j * 544 << ",544,288)\n";
+                } else {
+                    //std::cout << "crop: (" << i * 544 << "," << j * 544 << ",544,544)\n";
+                }
+                // crop corresponding part of images
+                temp_small_mat = mat_img_5MP(cropRect);
+                // convert to std::shared_ptr<image_t> and call detect on it
+                temp_image_t = mat_to_image(temp_small_mat);
+                // populate array of detections boxes
+                array_detection_boxes.push_back(detect(*temp_image_t, thresh, use_mean));
+           }
+        }
+
+        // compute rescale factor to initial width / height of image
+        float rescaleFactorW = (float)init_w / mat_img_5MP.size().width;
+        float rescaleFactorH = (float)init_h / mat_img_5MP.size().height;
+        
+        // Populate list of all bbox (merge all individuals cell)
+        std::vector<bbox_t> all_detection_boxes;
+
+        for(std::vector<int>::size_type i = 0; i != array_detection_boxes.size(); i++) {
+            for (auto &bbox : array_detection_boxes[i]) {
+                int columnIndex = (i - (i % 4)) / 4;
+                int rowIndex = i % 4;
+
+                // std::cout << "bbox index: " << i << " columnIndex: " << columnIndex << " rowIndex " << rowIndex << "\n";
+                // Translate
+                bbox.x = bbox.x + 544 * columnIndex;
+                bbox.y = bbox.y + 544 * rowIndex;
+                // Rescale
+                bbox.x *= rescaleFactorW;
+                bbox.w *= rescaleFactorW;
+                bbox.y *= rescaleFactorH;
+                bbox.h *= rescaleFactorH;
+                // Push to final array
+                all_detection_boxes.push_back(bbox);
+            }
+        }
+
+        return all_detection_boxes;
     }
 
 #ifdef OPENCV
@@ -110,18 +168,23 @@ public:
     {
         if(mat.data == NULL)
             throw std::runtime_error("Image is empty");
-        auto image_ptr = mat_to_image_resize(mat);
-        return detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
+        //auto image_ptr = mat_to_image_resize(mat);
+        return detect_resized(mat, mat.cols, mat.rows, thresh, use_mean);
     }
 
     std::shared_ptr<image_t> mat_to_image_resize(cv::Mat mat) const
     {
         if (mat.data == NULL) return std::shared_ptr<image_t>(NULL);
 
-        cv::Size network_size = cv::Size(get_net_width(), get_net_height());
+        cv::Size defined_input_size = cv::Size(3264, 2464);
         cv::Mat det_mat;
-        if (mat.size() != network_size)
-            cv::resize(mat, det_mat, network_size);
+        // Setup a rectangle to define your region of interest
+        // cv::Rect myROI(0, 0, get_net_width(), get_net_height());
+        if (mat.size() != defined_input_size) {
+            std::cout << "Resize mat to 3264x2464 \n";
+            //det_mat = mat(myROI);
+            cv::resize(mat, det_mat, defined_input_size);
+        }      
         else
             det_mat = mat;  // only reference is copied
 

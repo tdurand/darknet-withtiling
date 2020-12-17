@@ -279,6 +279,8 @@ LIB_API std::vector<bbox_t> Detector::detect(image_t img, float thresh, bool use
     net.wait_stream = wait_stream;    // 1 - wait CUDA-stream, 0 - not to wait
 #endif
     //std::cout << "net.gpu_index = " << net.gpu_index << std::endl;
+    //std::cout << "net.w = " << net.w << std::endl;
+    //std::cout << "net.h = " << net.h << std::endl;
 
     image im;
     im.c = img.c;
